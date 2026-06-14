@@ -34,7 +34,8 @@ class MyApp extends StatelessWidget {
       ],
       child: BlocBuilder<PlayerBloc, PlayerState>(
         buildWhen: (previous, current) =>
-            previous.isDarkMode != current.isDarkMode,
+            previous.isDarkMode != current.isDarkMode ||
+            previous.appLocale != current.appLocale,
         builder: (context, state) {
           // Synchronize static colors state
           AppColors.isDarkMode = state.isDarkMode;

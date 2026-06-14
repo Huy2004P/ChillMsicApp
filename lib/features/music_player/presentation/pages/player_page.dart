@@ -89,7 +89,7 @@ class _PlayerPageState extends State<PlayerPage> {
               // Main content
               SafeArea(
                 child: LayoutBuilder(
-                  builder: (context, constraints) {
+                  builder: (layoutContext, constraints) {
                     final isDesktop = constraints.maxWidth >= 768;
                     
                     if (isDesktop) {
