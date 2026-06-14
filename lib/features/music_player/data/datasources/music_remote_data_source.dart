@@ -7,6 +7,7 @@ import '../../../../core/service/persistence_service.dart';
 abstract class MusicRemoteDataSource {
   Future<List<SongModel>> getSongs();
   Future<List<SongModel>> searchSongs(String query);
+  Future<SongModel> getSongDetail(String id);
 }
 
 class MockMusicRemoteDataSourceImpl implements MusicRemoteDataSource {
@@ -197,6 +198,17 @@ class MockMusicRemoteDataSourceImpl implements MusicRemoteDataSource {
           song.album.toLowerCase().contains(lowercaseQuery);
     }).toList();
   }
+
+  @override
+  Future<SongModel> getSongDetail(String id) async {
+    // Simulate API delay
+    await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      return _mockSongs.firstWhere((song) => song.id == id);
+    } catch (_) {
+      throw Exception('Song not found in mock data');
+    }
+  }
 }
 
 class HttpMusicRemoteDataSourceImpl implements MusicRemoteDataSource {
@@ -286,17 +298,22 @@ class HttpMusicRemoteDataSourceImpl implements MusicRemoteDataSource {
           '[ChillMsic Debug] Tìm kiếm thành công, nhận được ${results.length} kết quả.',
         );
         return results.map((jsonItem) {
+          final int rawDuration = jsonItem['duration'] ?? 0;
+          final int minutes = rawDuration ~/ 60;
+          final int seconds = rawDuration % 60;
+          final String durationStr =
+              '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
           return SongModel(
             id: jsonItem['id'] as String? ?? '',
             title: jsonItem['title'] as String? ?? 'Không rõ tên',
             artist: jsonItem['artist'] as String? ?? 'Nhiều nghệ sĩ',
             album: 'Kết quả tìm kiếm',
-            duration: '00:00', // To be resolved on detail load/play
+            duration: durationStr,
+            isFavorite: jsonItem['isFavorite'] as bool? ?? false,
             coverUrl:
                 jsonItem['thumbnail'] as String? ??
-                'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=90&w=1200',
+                'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=90\u0026w=1200',
             audioUrl: '', // Will be resolved dynamically when playing
-            isFavorite: false,
             format: 'MP3 High-Res',
             bitrate: '320 kbps',
             sampleRate: '44.1 kHz',
@@ -318,6 +335,53 @@ class HttpMusicRemoteDataSourceImpl implements MusicRemoteDataSource {
       );
       final mockSource = MockMusicRemoteDataSourceImpl();
       return await mockSource.searchSongs(query);
+    }
+  }
+
+  @override
+  Future<SongModel> getSongDetail(String id) async {
+    // Simulate API delay
+    await Future.delayed(const Duration(milliseconds: 300));
+    try {
+      final response = await client.get(Uri.parse('$baseUrl/api/song/$id'));
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(
+          utf8.decode(response.bodyBytes),
+        );
+        final int rawDuration = data['duration'] ?? 0;
+        final int minutes = rawDuration ~/ 60;
+        final int seconds = rawDuration % 60;
+        final String durationStr =
+            '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+        return SongModel(
+          id: data['id'] as String? ?? '',
+          title: data['title'] as String? ?? 'Không rõ tên',
+          artist: data['artist'] as String? ?? 'Nhiều nghệ sĩ',
+          album: data['album'] as String? ?? '',
+          duration: durationStr,
+          coverUrl: data['coverUrl'] as String? ?? '',
+          audioUrl: data['audioUrl'] as String? ?? '',
+          isFavorite: data['isFavorite'] as bool? ?? false,
+          format: data['format'] as String? ?? '',
+          bitrate: data['bitrate'] as String? ?? '',
+          sampleRate: data['sampleRate'] as String? ?? '',
+          releaseDate: data['releaseDate'] as String? ?? '',
+          composer: data['composer'] as String? ?? '',
+          copyright: data['copyright'] as String? ?? '',
+          lyrics: data['lyrics'] as String? ?? '',
+        );
+      } else {
+        debugPrint(
+          '[ChillMsic Debug] Lỗi chi tiết HTTP: ${response.statusCode}',
+        );
+        throw Exception('Failed to fetch song detail');
+      }
+    } catch (e) {
+      debugPrint(
+        '[ChillMsic Debug] Không thể kết nối tới Backend để lấy chi tiết ($e).',
+      );
+      final mockSource = MockMusicRemoteDataSourceImpl();
+      return await mockSource.getSongDetail(id);
     }
   }
 }

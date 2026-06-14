@@ -133,7 +133,7 @@ Output Requirements:
 
   String _getGenreBreakdownString(List<Song> songs) {
     if (songs.isEmpty) {
-      return 'Dữ liệu Demo (V-POP: 50%, Lo-Fi Chill: 30%, Nhạc không lời: 20%)';
+      return '';
     }
     
     final Map<String, int> counts = {};
@@ -366,6 +366,29 @@ Output Requirements:
                             },
                           ),
                           const SizedBox(height: 16),
+                          if (history.isEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.attention.withAlpha(20),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.attention.withAlpha(50)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.info_outline_rounded, color: AppColors.attention, size: 16),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      context.tr('no_songs_played_yet'),
+                                      style: AppTypography.caption.copyWith(color: AppColors.attention, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           SizedBox(
                             width: double.infinity,
                             child: _isLoading
@@ -379,7 +402,7 @@ Output Requirements:
                                     label: context.tr('start_analysis_btn'),
                                     type: MetaButtonType.primary,
                                     icon: Icons.psychology_rounded,
-                                    onPressed: () => _startGeminiAnalysis(state),
+                                    onPressed: history.isEmpty ? null : () => _startGeminiAnalysis(state),
                                   ),
                           ),
                         ],
@@ -526,34 +549,54 @@ Output Requirements:
   }
 
   Widget _buildGenreBreakdownCard(List<Song> history, bool isDarkMode) {
-    // Collect genres and counts
-    final Map<String, int> counts = {};
-    
-    // Add default values for demo if history is empty
     if (history.isEmpty) {
-      counts['Lo-Fi Chill'] = 4;
-      counts['V-POP / Nhạc Trẻ'] = 3;
-      counts['EDM / Dance'] = 2;
-      counts['Khác'] = 1;
-    } else {
-      for (final song in history) {
-        String genre = 'Nhạc trẻ';
-        final albumLower = song.album.toLowerCase();
-        final titleLower = song.title.toLowerCase();
-        if (albumLower.contains('lofi') || titleLower.contains('lofi') || albumLower.contains('vietnam lofi')) {
-          genre = 'Lo-Fi Chill';
-        } else if (albumLower.contains('ost') || albumLower.contains('mắt biếc')) {
-          genre = 'Nhạc Phim (OST)';
-        } else if (albumLower.contains('dance') || albumLower.contains('edm')) {
-          genre = 'EDM / Dance';
-        } else if (song.album.isNotEmpty && !song.album.contains('Kết quả') && !song.album.contains('Top')) {
-          genre = song.album;
-        }
-        counts[genre] = (counts[genre] ?? 0) + 1;
-      }
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceSoft,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.hairlineSoft, width: 1.5),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.bar_chart_rounded, size: 48, color: AppColors.steel),
+            const SizedBox(height: 12),
+            Text(
+              context.tr('no_songs_played_yet'),
+              style: AppTypography.bodySmBold.copyWith(color: AppColors.inkDeep),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              context.tr('listening_stats_desc'),
+              style: AppTypography.caption.copyWith(color: AppColors.charcoal),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
     }
 
-    final totalCount = history.isEmpty ? 10 : history.length;
+    // Collect genres and counts
+    final Map<String, int> counts = {};
+    for (final song in history) {
+      String genre = 'Nhạc trẻ';
+      final albumLower = song.album.toLowerCase();
+      final titleLower = song.title.toLowerCase();
+      if (albumLower.contains('lofi') || titleLower.contains('lofi') || albumLower.contains('vietnam lofi')) {
+        genre = 'Lo-Fi Chill';
+      } else if (albumLower.contains('ost') || albumLower.contains('mắt biếc')) {
+        genre = 'Nhạc Phim (OST)';
+      } else if (albumLower.contains('dance') || albumLower.contains('edm')) {
+        genre = 'EDM / Dance';
+      } else if (song.album.isNotEmpty && !song.album.contains('Kết quả') && !song.album.contains('Top')) {
+        genre = song.album;
+      }
+      counts[genre] = (counts[genre] ?? 0) + 1;
+    }
+
+    final totalCount = history.length;
     final sortedGenres = counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
     return Container(
@@ -573,18 +616,6 @@ Output Requirements:
                 context.tr('favorite_genre').toUpperCase(),
                 style: AppTypography.captionBold.copyWith(fontSize: 10, color: AppColors.charcoal),
               ),
-              if (history.isEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppColors.attention.withAlpha(30),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    context.tr('demo_data'),
-                    style: const TextStyle(color: AppColors.attention, fontSize: 8, fontWeight: FontWeight.bold),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 16),

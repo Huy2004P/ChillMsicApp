@@ -165,16 +165,45 @@ class CatalogBloc extends Bloc<CatalogEvent, CatalogState> {
     ToggleCatalogFavoriteEvent event,
     Emitter<CatalogState> emit,
   ) {
-    final updatedAll = state.allSongs.map((s) {
+    // Find the song in either allSongs or filteredSongs
+    Song? targetSong;
+    for (final s in state.allSongs) {
       if (s.id == event.songId) {
-        return s.copyWith(isFavorite: !s.isFavorite);
+        targetSong = s;
+        break;
       }
-      return s;
-    }).toList();
+    }
+    if (targetSong == null) {
+      for (final s in state.filteredSongs) {
+        if (s.id == event.songId) {
+          targetSong = s;
+          break;
+        }
+      }
+    }
+
+    if (targetSong == null) return;
+
+    final updatedIsFavorite = !targetSong.isFavorite;
+
+    // Update allSongs. If targetSong was not in allSongs, add it to preserve favorite state.
+    final List<Song> updatedAll = [];
+    bool foundInAll = false;
+    for (final s in state.allSongs) {
+      if (s.id == event.songId) {
+        updatedAll.add(s.copyWith(isFavorite: updatedIsFavorite));
+        foundInAll = true;
+      } else {
+        updatedAll.add(s);
+      }
+    }
+    if (!foundInAll) {
+      updatedAll.add(targetSong.copyWith(isFavorite: updatedIsFavorite));
+    }
 
     final updatedFiltered = state.filteredSongs.map((s) {
       if (s.id == event.songId) {
-        return s.copyWith(isFavorite: !s.isFavorite);
+        return s.copyWith(isFavorite: updatedIsFavorite);
       }
       return s;
     }).toList();

@@ -38,14 +38,30 @@ class MusicRepositoryImpl implements MusicRepository {
     
     // 1. Fetch remote search results from backend
     final searchModels = await remoteDataSource.searchSongs(query);
-    final searchSongs = List<Song>.from(searchModels);
     
-    // 2. Register them in _allResolvedSongs and synchronize favorite state
+    // 2. Fetch full details in parallel for each search result (gets duration, lyrics, composer etc.)
+    final resolvedModels = await Future.wait(searchModels.map((model) async {
+      try {
+        final existing = _allResolvedSongs[model.id];
+        if (existing != null && existing.duration != '00:00' && existing.duration != '0::00' && existing.duration.isNotEmpty) {
+          return existing;
+        }
+        final detailed = await remoteDataSource.getSongDetail(model.id);
+        return detailed;
+      } catch (e) {
+        return model;
+      }
+    }));
+
+    final searchSongs = List<Song>.from(resolvedModels);
+    
+    // 3. Register them in _allResolvedSongs and synchronize favorite state
     for (var i = 0; i < searchSongs.length; i++) {
       final s = searchSongs[i];
       final existing = _allResolvedSongs[s.id];
       if (existing != null) {
         searchSongs[i] = s.copyWith(isFavorite: existing.isFavorite);
+        _allResolvedSongs[s.id] = searchSongs[i];
       } else {
         _allResolvedSongs[s.id] = s;
       }
