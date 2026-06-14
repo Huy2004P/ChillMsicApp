@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:audioplayers/audioplayers.dart' as ap;
 import '../../features/music_player/domain/entities/song.dart';
 import '../../features/music_player/data/datasources/music_remote_data_source.dart';
 import 'audio_player_service.dart';
+import 'audio_cache_helper.dart';
 
 class RealAudioPlayerService implements AudioPlayerService {
   final _player1 = ap.AudioPlayer();
@@ -240,8 +240,8 @@ class RealAudioPlayerService implements AudioPlayerService {
         song.audioUrl.startsWith('file://');
 
     // Check offline audio cache
-    final cacheDir = await getTemporaryDirectory();
-    final cacheFile = File('${cacheDir.path}/cached_songs/${song.id}.mp3');
+    final targetDir = await AudioCacheHelper.getCacheDirectory();
+    final cacheFile = File('${targetDir.path}/${song.id}.mp3');
     bool isCached = await cacheFile.exists();
 
     String streamUrl = song.audioUrl;
@@ -476,12 +476,7 @@ class RealAudioPlayerService implements AudioPlayerService {
 
   Future<void> _downloadToCache(String id, String url) async {
     try {
-      final cacheDir = await getTemporaryDirectory();
-      final targetDir = Directory('${cacheDir.path}/cached_songs');
-      if (!await targetDir.exists()) {
-        await targetDir.create(recursive: true);
-      }
-
+      final targetDir = await AudioCacheHelper.getCacheDirectory();
       final cacheFile = File('${targetDir.path}/$id.mp3');
       if (await cacheFile.exists()) return;
 

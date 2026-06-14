@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:equatable/equatable.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../../../../core/service/audio_player_service.dart';
 import '../../../../core/service/mock_audio_player_service.dart';
@@ -1571,12 +1570,7 @@ Yêu cầu trả về kết quả định dạng JSON là một danh sách các 
     emit(state.copyWith(downloadingSongIds: updatedDownloading));
 
     try {
-      final cacheDir = await getTemporaryDirectory();
-      final targetDir = Directory('${cacheDir.path}/cached_songs');
-      if (!await targetDir.exists()) {
-        await targetDir.create(recursive: true);
-      }
-
+      final targetDir = await AudioCacheHelper.getCacheDirectory();
       final cacheFile = File('${targetDir.path}/${song.id}.mp3');
       if (!await cacheFile.exists()) {
         final String streamUrl =
@@ -1634,8 +1628,8 @@ Yêu cầu trả về kết quả định dạng JSON là một danh sách các 
   ) async {
     final songId = event.songId;
     try {
-      final cacheDir = await getTemporaryDirectory();
-      final cacheFile = File('${cacheDir.path}/cached_songs/$songId.mp3');
+      final targetDir = await AudioCacheHelper.getCacheDirectory();
+      final cacheFile = File('${targetDir.path}/$songId.mp3');
       if (await cacheFile.exists()) {
         await cacheFile.delete();
         debugPrint(

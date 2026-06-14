@@ -3,8 +3,13 @@ import 'package:path_provider/path_provider.dart';
 
 class AudioCacheHelper {
   static Future<Directory> getCacheDirectory() async {
-    final tempDir = await getTemporaryDirectory();
-    final targetDir = Directory('${tempDir.path}/cached_songs');
+    Directory? baseDir;
+    if (Platform.isAndroid) {
+      baseDir = await getExternalStorageDirectory();
+    }
+    baseDir ??= await getApplicationDocumentsDirectory();
+
+    final targetDir = Directory('${baseDir.path}/cached_songs');
     if (!await targetDir.exists()) {
       await targetDir.create(recursive: true);
     }
